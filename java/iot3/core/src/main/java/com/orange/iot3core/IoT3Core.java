@@ -3,15 +3,19 @@
 
  This software is distributed under the MIT license, see LICENSE.txt file for more details.
 
- @author Mathieu LEFEBVRE <mathieu1.lefebvre@orange.com>
- */
+@authors
+    Mathieu LEFEBVRE   <mathieu1.lefebvre@orange.com>
+    Maciej Ćmiel       <maciej.cmiel@orange.com>
+*/
 package com.orange.iot3core;
 
 import com.orange.iot3core.bootstrap.BootstrapConfig;
-import com.orange.iot3core.clients.Lwm2mClient;
 import com.orange.iot3core.clients.MqttCallback;
 import com.orange.iot3core.clients.MqttClient;
 import com.orange.iot3core.clients.OpenTelemetryClient;
+import com.orange.iot3core.clients.lwm2m.Lwm2mClient;
+import com.orange.iot3core.clients.lwm2m.model.Lwm2mConfig;
+import com.orange.iot3core.clients.lwm2m.model.Lwm2mDevice;
 
 import java.net.URI;
 
@@ -47,17 +51,20 @@ public class IoT3Core {
      * @param telemetryPassword Open Telemetry password
      */
     private IoT3Core(String mqttHost,
-                    int mqttPort,
-                    String mqttUsername,
-                    String mqttPassword,
-                    String mqttClientId,
-                    boolean mqttUseTls,
-                    IoT3CoreCallback ioT3CoreCallback,
-                    String telemetryHost,
-                    int telemetryPort,
-                    String telemetryEndpoint,
-                    String telemetryUsername,
-                    String telemetryPassword) {
+                     int mqttPort,
+                     String mqttUsername,
+                     String mqttPassword,
+                     String mqttClientId,
+                     boolean mqttUseTls,
+                     IoT3CoreCallback ioT3CoreCallback,
+                     String telemetryHost,
+                     int telemetryPort,
+                     String telemetryEndpoint,
+                     String telemetryUsername,
+                     String telemetryPassword,
+                     Lwm2mConfig lwm2mConfig,
+                     Lwm2mDevice lwm2mDevice
+    ) {
         // instantiate the OpenTelemetry client
         OpenTelemetryClient.Scheme scheme = OpenTelemetryClient.Scheme.HTTP;
         scheme.setCustomPort(telemetryPort);
@@ -109,7 +116,7 @@ public class IoT3Core {
                 },
                 openTelemetryClient);
         // instantiate the LwM2M client
-        this.lwm2mClient = new Lwm2mClient();
+        this.lwm2mClient = new Lwm2mClient(lwm2mConfig, lwm2mDevice);
     }
 
     /**
@@ -125,21 +132,21 @@ public class IoT3Core {
      * Disconnect the MQTT client
      */
     public void disconnectMqtt() {
-        if(mqttClient != null) mqttClient.disconnect();
+        if (mqttClient != null) mqttClient.disconnect();
     }
 
     /**
      * Disconnect the OpenTelemetry client
      */
     public void disconnectOpenTelemetry() {
-        if(openTelemetryClient != null) openTelemetryClient.disconnect();
+        if (openTelemetryClient != null) openTelemetryClient.disconnect();
     }
 
     /**
      * Disconnect the LwM2M client
      */
     public void disconnectLwM2M() {
-        if(lwm2mClient != null) lwm2mClient.disconnect();
+        if (lwm2mClient != null) lwm2mClient.disconnect();
     }
 
     /**
@@ -155,35 +162,35 @@ public class IoT3Core {
      * Reconnect the MQTT client
      */
     public void reconnectMqtt() {
-        if(mqttClient != null) mqttClient.connect();
+        if (mqttClient != null) mqttClient.connect();
     }
 
     /**
      * Reconnect the OpenTelemetry client
      */
     public void reconnectOpenTelemetry() {
-        if(openTelemetryClient != null) openTelemetryClient.connect();
+        if (openTelemetryClient != null) openTelemetryClient.connect();
     }
 
     /**
      * Reconnect the LwM2M client
      */
     public void reconnectLwM2M() {
-        if(lwm2mClient != null) lwm2mClient.connect();
+        if (lwm2mClient != null) lwm2mClient.connect();
     }
 
     /**
      * Subscribe to a MQTT topic
      */
     public void mqttSubscribe(String topic) {
-        if(mqttClient != null) mqttClient.subscribeToTopic(topic);
+        if (mqttClient != null) mqttClient.subscribeToTopic(topic);
     }
 
     /**
      * Unsubscribe from a MQTT topic
      */
     public void mqttUnsubscribe(String topic) {
-        if(mqttClient != null) mqttClient.unsubscribeFromTopic(topic);
+        if (mqttClient != null) mqttClient.unsubscribeFromTopic(topic);
     }
 
     /**
@@ -197,14 +204,14 @@ public class IoT3Core {
      * Publish a message on the specified MQTT topic with the indicated retained value
      */
     public void mqttPublish(String topic, String message, boolean retain) {
-        if(mqttClient != null) mqttClient.publishMessage(topic, message, retain);
+        if (mqttClient != null) mqttClient.publishMessage(topic, message, retain);
     }
 
     /**
      * Check that the MQTT connection is secured with TLS
      */
     public boolean isMqttConnectionSecured() {
-        if(mqttClient != null) return mqttClient.isConnected() && mqttClient.isConnectionSecured();
+        if (mqttClient != null) return mqttClient.isConnected() && mqttClient.isConnectionSecured();
         else return false;
     }
 
@@ -224,6 +231,8 @@ public class IoT3Core {
         private String telemetryEndpoint;
         private String telemetryUsername;
         private String telemetryPassword;
+        private Lwm2mConfig lwm2mConfig;
+        private Lwm2mDevice lwm2mDevice;
 
         /**
          * Start building an instance of IoT3Core.
@@ -274,6 +283,30 @@ public class IoT3Core {
             this.telemetryEndpoint = telemetryEndpoint;
             this.telemetryUsername = telemetryUsername;
             this.telemetryPassword = telemetryPassword;
+            return this;
+        }
+
+        /**
+         * Set the LwM2M configuration for your IoT3Core instance.
+         *
+         * @param lwm2mConfig An instance of {@link Lwm2mConfig}, containing the endpoint name, server URI,
+         *                    security credentials, and optional parameters depending on the configuration type.
+         *                    - Use {@link Lwm2mConfig.Lwm2mBootstrapConfig} for bootstrap setup.
+         *                    - Use {@link Lwm2mConfig.Lwm2mClassicConfig} for direct PSK setup.
+         * @param lwm2mDevice represents the device's details [LwM2M Device (3) object]
+         * @return The current IoT3CoreBuilder instance with the updated LwM2M configuration.
+         * @throws IllegalArgumentException If the provided {@link Lwm2mConfig} is null or incomplete.
+         */
+        public IoT3CoreBuilder lwm2mParams(Lwm2mConfig lwm2mConfig, Lwm2mDevice lwm2mDevice) {
+            if (lwm2mConfig == null) {
+                throw new IllegalArgumentException("Lwm2mConfig cannot be null.");
+            }
+            if (lwm2mDevice == null) {
+                throw new IllegalArgumentException("Lwm2mDevice cannot be null.");
+            }
+            this.lwm2mConfig = lwm2mConfig;
+            this.lwm2mDevice = lwm2mDevice;
+
             return this;
         }
 
@@ -333,7 +366,10 @@ public class IoT3Core {
                     telemetryPort,
                     telemetryEndpoint,
                     telemetryUsername,
-                    telemetryPassword);
+                    telemetryPassword,
+                    lwm2mConfig,
+                    lwm2mDevice
+            );
         }
     }
 

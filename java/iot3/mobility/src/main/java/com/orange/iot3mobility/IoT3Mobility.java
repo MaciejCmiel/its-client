@@ -3,13 +3,17 @@
 
  This software is distributed under the MIT license, see LICENSE.txt file for more details.
 
- @author Mathieu LEFEBVRE <mathieu1.lefebvre@orange.com>
- */
+@authors
+    Mathieu LEFEBVRE   <mathieu1.lefebvre@orange.com>
+    Maciej Ćmiel       <maciej.cmiel@orange.com>
+*/
 package com.orange.iot3mobility;
 
 import com.orange.iot3core.IoT3Core;
 import com.orange.iot3core.IoT3CoreCallback;
 import com.orange.iot3core.bootstrap.BootstrapConfig;
+import com.orange.iot3core.clients.lwm2m.model.Lwm2mConfig;
+import com.orange.iot3core.clients.lwm2m.model.Lwm2mDevice;
 import com.orange.iot3mobility.its.EtsiUtils;
 import com.orange.iot3mobility.its.HazardType;
 import com.orange.iot3mobility.its.StationType;
@@ -20,13 +24,7 @@ import com.orange.iot3mobility.its.json.cam.CAM;
 import com.orange.iot3mobility.its.json.cam.HighFrequencyContainer;
 import com.orange.iot3mobility.its.json.cpm.CPM;
 import com.orange.iot3mobility.its.json.denm.*;
-import com.orange.iot3mobility.managers.IoT3RoadHazardCallback;
-import com.orange.iot3mobility.managers.IoT3RoadSensorCallback;
-import com.orange.iot3mobility.managers.IoT3RoadUserCallback;
-import com.orange.iot3mobility.managers.RoIManager;
-import com.orange.iot3mobility.managers.RoadHazardManager;
-import com.orange.iot3mobility.managers.RoadSensorManager;
-import com.orange.iot3mobility.managers.RoadUserManager;
+import com.orange.iot3mobility.managers.*;
 import com.orange.iot3mobility.quadkey.LatLng;
 import com.orange.iot3mobility.quadkey.QuadTileHelper;
 
@@ -68,18 +66,21 @@ public class IoT3Mobility {
      * @param telemetryPassword Open Telemetry password
      */
     private IoT3Mobility(String uuid,
-                        String context,
-                        String mqttHost,
-                        int mqttPort,
-                        String mqttUsername,
-                        String mqttPassword,
-                        boolean mqttUseTls,
-                        IoT3MobilityCallback ioT3MobilityCallback,
-                        String telemetryHost,
-                        int telemetryPort,
-                        String telemetryEndpoint,
-                        String telemetryUsername,
-                        String telemetryPassword) {
+                         String context,
+                         String mqttHost,
+                         int mqttPort,
+                         String mqttUsername,
+                         String mqttPassword,
+                         boolean mqttUseTls,
+                         IoT3MobilityCallback ioT3MobilityCallback,
+                         String telemetryHost,
+                         int telemetryPort,
+                         String telemetryEndpoint,
+                         String telemetryUsername,
+                         String telemetryPassword,
+                         Lwm2mConfig lwm2mConfig,
+                         Lwm2mDevice lwm2mDevice
+    ) {
         this.uuid = uuid;
         this.context = context;
         // random stationId at the moment, will be an option to set it later on
@@ -129,6 +130,7 @@ public class IoT3Mobility {
                         telemetryEndpoint,
                         telemetryUsername,
                         telemetryPassword)
+                .lwm2mParams(lwm2mConfig, lwm2mDevice)
                 .callback(ioT3CoreCallback)
                 .build();
 
@@ -411,6 +413,8 @@ public class IoT3Mobility {
         private String telemetryEndpoint;
         private String telemetryUsername;
         private String telemetryPassword;
+        private Lwm2mConfig lwm2mConfig;
+        private Lwm2mDevice lwm2mDevice;
 
         /**
          * Start building an instance of IoT3Mobility.
@@ -494,6 +498,29 @@ public class IoT3Mobility {
         }
 
         /**
+         * Set the LwM2M configuration for your IoT3Mobility instance.
+         *
+         * @param lwm2mConfig An instance of {@link Lwm2mConfig}, containing the endpoint name, server URI,
+         *                    security credentials, and optional parameters depending on the configuration type.
+         *                    - Use {@link Lwm2mConfig.Lwm2mBootstrapConfig} for bootstrap setup.
+         *                    - Use {@link Lwm2mConfig.Lwm2mClassicConfig} for direct PSK setup.
+         * @param lwm2mDevice represents the device's details [LwM2M Device (3) object]
+         * @return The current IoT3CoreBuilder instance with the updated LwM2M configuration.
+         * @throws IllegalArgumentException If the provided {@link Lwm2mConfig} is null or incomplete.
+         */
+        public IoT3Mobility.IoT3MobilityBuilder lwm2mParams(Lwm2mConfig lwm2mConfig, Lwm2mDevice lwm2mDevice) {
+            if (lwm2mConfig == null) {
+                throw new IllegalArgumentException("Lwm2mConfig cannot be null.");
+            }
+            if (lwm2mDevice == null) {
+                throw new IllegalArgumentException("Lwm2mDevice cannot be null.");
+            }
+            this.lwm2mConfig = lwm2mConfig;
+            this.lwm2mDevice = lwm2mDevice;
+            return this;
+        }
+
+        /**
          * Set the callback of your IoT3Mobility instance.
          *
          * @param ioT3MobilityCallback callback to be notified of mainly MQTT-related events, e.g. message reception
@@ -523,7 +550,10 @@ public class IoT3Mobility {
                     telemetryPort,
                     telemetryEndpoint,
                     telemetryUsername,
-                    telemetryPassword);
+                    telemetryPassword,
+                    lwm2mConfig,
+                    lwm2mDevice
+            );
         }
     }
 

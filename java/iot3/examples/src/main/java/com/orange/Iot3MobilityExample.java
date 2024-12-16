@@ -1,5 +1,8 @@
 package com.orange;
 
+import com.orange.iot3core.clients.lwm2m.model.Lwm2mConfig;
+import com.orange.iot3core.clients.lwm2m.model.Lwm2mDevice;
+import com.orange.iot3core.clients.lwm2m.model.Lwm2mServer;
 import com.orange.iot3mobility.IoT3Mobility;
 import com.orange.iot3mobility.IoT3MobilityCallback;
 import com.orange.iot3mobility.TrueTime;
@@ -45,6 +48,26 @@ public class Iot3MobilityExample {
     private static final String EXAMPLE_OTL_USERNAME = "telemetry_username";
     private static final String EXAMPLE_OTL_PASSWORD = "telemetry_password";
 
+    private static final int EXAMPLE_SHORT_SERVER_ID = 12345;
+    private static final Lwm2mDevice EXAMPLE_LWM2M_DEVICE = new Lwm2mDevice(
+            "device_manufacturer",
+            "model_number",
+            "serial_number",
+            "U"
+    );
+    private static final Lwm2mServer EXAMPLE_LWM2M_SERVER = new Lwm2mServer(
+            EXAMPLE_SHORT_SERVER_ID,
+            5 * 60,
+            "U"
+    );
+    private static final Lwm2mConfig EXAMPLE_LWM2M_CONFIG = new Lwm2mConfig.Lwm2mClassicConfig(
+            "your_endpoint_name",
+            "coaps://lwm2m.liveobjects.orange-business.com:5684",
+            "your_psk_id",
+            "your_private_key_in_hex",
+            EXAMPLE_SHORT_SERVER_ID,
+            EXAMPLE_LWM2M_SERVER
+    );
     private static IoT3Mobility ioT3Mobility;
 
     public static void main(String[] args) {
@@ -60,6 +83,10 @@ public class Iot3MobilityExample {
                         EXAMPLE_OTL_ENDPOINT,
                         EXAMPLE_OTL_USERNAME,
                         EXAMPLE_OTL_PASSWORD)
+                .lwm2mParams(
+                        EXAMPLE_LWM2M_CONFIG,
+                        EXAMPLE_LWM2M_DEVICE
+                )
                 .callback(new IoT3MobilityCallback() {
                     @Override
                     public void connectionLost(Throwable cause) {
