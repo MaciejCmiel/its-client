@@ -14,8 +14,11 @@ import com.orange.iot3core.clients.lwm2m.model.Lwm2mConfig;
 import com.orange.iot3core.clients.lwm2m.model.Lwm2mDevice;
 import com.orange.iot3core.clients.lwm2m.model.Lwm2mInstance;
 import io.reactivex.annotations.Nullable;
-import org.eclipse.leshan.client.californium.LeshanClient;
-import org.eclipse.leshan.client.californium.LeshanClientBuilder;
+import org.eclipse.leshan.client.LeshanClient;
+import org.eclipse.leshan.client.LeshanClientBuilder;
+import org.eclipse.leshan.client.californium.endpoint.CaliforniumClientEndpointsProvider;
+import org.eclipse.leshan.client.californium.endpoint.coap.CoapClientProtocolProvider;
+import org.eclipse.leshan.client.californium.endpoint.coaps.CoapsClientProtocolProvider;
 import org.eclipse.leshan.client.object.Security;
 import org.eclipse.leshan.client.object.Server;
 import org.eclipse.leshan.client.resource.BaseInstanceEnablerFactory;
@@ -24,6 +27,8 @@ import org.eclipse.leshan.core.LwM2mId;
 import org.eclipse.leshan.core.request.BindingMode;
 import org.eclipse.leshan.core.util.Hex;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.EnumSet;
 
 public class Lwm2mClient {
 
@@ -47,6 +52,14 @@ public class Lwm2mClient {
 
         LeshanClientBuilder builder = new LeshanClientBuilder(lwm2mConfig.getEndpointName());
         builder.setObjects(initializer.createAll());
+
+        // TODO: improve
+        CaliforniumClientEndpointsProvider.Builder endpointsBuilder =
+                new CaliforniumClientEndpointsProvider.Builder(
+                        new CoapClientProtocolProvider(),
+                        new CoapsClientProtocolProvider()
+                );
+        builder.setEndpointsProviders(endpointsBuilder.build());
 
         client = builder.build();
 
@@ -131,8 +144,11 @@ public class Lwm2mClient {
         return new Server(
                 lwm2mConfig.getServerConfig().getShortServerId(),
                 lwm2mConfig.getServerConfig().getLifetime(),
-                BindingMode.valueOf(lwm2mConfig.getServerConfig().getBindingMode()),
-                lwm2mConfig.getServerConfig().isNotifyWhenDisable()
+                // TODO: getServerConfig().getBindingModes()
+                EnumSet.of(BindingMode.valueOf(lwm2mConfig.getServerConfig().getBindingMode())),
+                lwm2mConfig.getServerConfig().isNotifyWhenDisable(),
+                // TODO:  getServerConfig().getPreferredTransport()
+                BindingMode.valueOf(lwm2mConfig.getServerConfig().getBindingMode())
         );
     }
 
