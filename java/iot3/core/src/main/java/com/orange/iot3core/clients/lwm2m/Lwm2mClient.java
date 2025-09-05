@@ -19,6 +19,7 @@ import org.eclipse.leshan.client.LeshanClientBuilder;
 import org.eclipse.leshan.client.californium.endpoint.CaliforniumClientEndpointsProvider;
 import org.eclipse.leshan.client.californium.endpoint.coap.CoapClientProtocolProvider;
 import org.eclipse.leshan.client.californium.endpoint.coaps.CoapsClientProtocolProvider;
+import org.eclipse.leshan.client.engine.DefaultRegistrationEngineFactory;
 import org.eclipse.leshan.client.object.Security;
 import org.eclipse.leshan.client.object.Server;
 import org.eclipse.leshan.client.resource.BaseInstanceEnablerFactory;
@@ -60,6 +61,13 @@ public class Lwm2mClient {
                         new CoapsClientProtocolProvider()
                 );
         builder.setEndpointsProviders(endpointsBuilder.build());
+
+        DefaultRegistrationEngineFactory engineFactory = new DefaultRegistrationEngineFactory();
+        //engineFactory.setCommunicationPeriod(comPeriodInSec * 1000);
+        //engineFactory.setReconnectOnUpdate(reconnectOnUpdate);
+        //engineFactory.setResumeOnConnect(!forceFullhandshake);
+        engineFactory.setQueueMode(lwm2mConfig.isQueueMode());
+        builder.setRegistrationEngineFactory(engineFactory);
 
         client = builder.build();
 
